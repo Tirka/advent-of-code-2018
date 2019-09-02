@@ -144,7 +144,10 @@ fn main() {
 
 
     // // DAY 16
-    // let (samples, _test_sequence) = day16::parse_input(&read_input!("day16.txt"));
-    // let count = day16::get_compliant_ops(samples);
+    // let (samples, test_sequence) = day16::parse_input(&read_input!("day16.txt"));
+    // let count = day16::count_three_or_more_compliant(&samples);
     // println!("DAY 16. PART 1: {}", count);
+    // let decode_table = day16::decode_operations(&samples);
+    // let memory = day16::exec_test_seq(&test_sequence, decode_table);
+    // println!("DAY 16. PART 2: {}\n", memory[0]);
 }
