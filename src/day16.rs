@@ -1,3 +1,7 @@
+use std::collections::{HashMap, HashSet};
+// use itertools::Itertools;
+// use std::iter::FromIterator;
+
 #[derive(Debug)]
 pub struct TestSequence;
 
@@ -8,120 +12,195 @@ pub struct Input {
     after: [usize; 4],
 }
 
-pub fn test_samples(samples: Vec<Input>) -> usize {
-    // println!("{:?}", &samples);
-
-    // let asas = 
-    //         samples.clone()
-    //         .into_iter()
-    //         .map(|sample| test_sample(sample.before, sample.op, sample.after))
-    //         .count();
-    
-    // println!("{:?}", &asas);
-
-    samples
-    .into_iter()
-    .map(|sample| test_sample(sample.before, sample.op, sample.after))
-    .filter(|result| *result >= 3)
-    .count()
+#[derive(Debug, Hash, Eq, PartialEq, Copy, Clone)]
+enum OperationType {
+    Addr, Addi, Mulr, Muli, Banr, Bani, Borr, Bori,
+    Setr, Seti, Gtir, Gtri, Gtrr, Eqir, Eqri, Eqrr
 }
 
-fn test_sample(before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> usize {
+mod operations {
+    pub fn addr(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
+        before[op[3]] = before[op[1]] + before[op[2]];
+        before == after
+    }
+
+    pub fn addi(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
+        before[op[3]] = before[op[1]] + op[2];
+        before == after
+    }
+
+    pub fn mulr(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
+        before[op[3]] = before[op[1]] * before[op[2]];
+        before == after
+    }
+
+    pub fn muli(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
+        before[op[3]] = before[op[1]] * op[2];
+        before == after
+    }
+
+    pub fn banr(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
+        before[op[3]] = before[op[1]] & before[op[2]];
+        before == after
+    }
+
+    pub fn bani(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
+        before[op[3]] = before[op[1]] & op[2];
+        before == after
+    }
+
+    pub fn borr(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
+        before[op[3]] = before[op[1]] | before[op[2]];
+        before == after
+    }
+
+    pub fn bori(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
+        before[op[3]] = before[op[1]] | op[2];
+        before == after
+    }
+
+    pub fn setr(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
+        before[op[3]] = before[op[1]];
+        before == after
+    }
+
+    pub fn seti(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
+        before[op[3]] = op[1];
+        before == after
+    }
+
+    pub fn gtir(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
+        before[op[3]] = if op[1] > before[op[2]] { 1 } else { 0 };
+        before == after
+    }
+
+    pub fn gtri(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
+        before[op[3]] = if before[op[1]] > op[2] { 1 } else { 0 };
+        before == after
+    }
+
+    pub fn gtrr(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
+        before[op[3]] = if before[op[1]] > before[op[2]] { 1 } else { 0 };
+        before == after
+    }
+
+    pub fn eqir(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
+        before[op[3]] = if op[1] == before[op[2]] { 1 } else { 0 };
+        before == after
+    }
+
+    pub fn eqri(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
+        before[op[3]] = if before[op[1]] == op[2] { 1 } else { 0 };
+        before == after
+    }
+
+    pub fn eqrr(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
+        before[op[3]] = if before[op[1]] == before[op[2]] { 1 } else { 0 };
+        before == after
+    }
+}
+
+type Operation = fn([usize; 4], [usize; 4], [usize; 4]) -> bool;
+
+fn get_operation(op_type: OperationType) -> Operation {
+    match op_type {
+        OperationType::Addr => operations::addr,
+        OperationType::Addi => operations::addi,
+        OperationType::Mulr => operations::mulr,
+        OperationType::Muli => operations::muli,
+        OperationType::Banr => operations::banr,
+        OperationType::Bani => operations::bani,
+        OperationType::Borr => operations::borr,
+        OperationType::Bori => operations::bori,
+        OperationType::Setr => operations::setr,
+        OperationType::Seti => operations::seti,
+        OperationType::Gtir => operations::gtir,
+        OperationType::Gtri => operations::gtri,
+        OperationType::Gtrr => operations::gtrr,
+        OperationType::Eqir => operations::eqir,
+        OperationType::Eqri => operations::eqri,
+        OperationType::Eqrr => operations::eqrr,
+    }
+}
+
+fn get_compliant_ops(before: [usize; 4], op: [usize; 4], after: [usize; 4])
+    -> HashSet<OperationType> {
+
     let operations = [
-        addr, addi,
-        mulr, muli,
-        banr, bani,
-        borr, bori,
-        setr, seti,
-        gtir, gtri, gtrr,
-        eqir, eqri, eqrr
+        OperationType::Addr, OperationType::Addi,
+        OperationType::Mulr, OperationType::Muli,
+        OperationType::Banr, OperationType::Bani,
+        OperationType::Borr, OperationType::Bori,
+        OperationType::Setr, OperationType::Seti,
+        OperationType::Gtir, OperationType::Gtri, OperationType::Gtrr,
+        OperationType::Eqir, OperationType::Eqri, OperationType::Eqrr,
     ];
 
     operations
     .iter()
-    .map(|o| o(before, op, after))
-    .filter(|result| *result)
+    .filter_map(|op_type| {
+        match get_operation(*op_type)(before, op, after) {
+            true => Some(*op_type),
+            false => None
+        }
+    })
+    .collect()
+}
+
+pub fn count_three_or_more_compliant(samples: &Vec<Input>) -> usize {
+    samples
+    .iter()
+    .map(|sample| get_compliant_ops(sample.before, sample.op, sample.after))
+    .filter(|result| result.len() >= 3)
     .count()
 }
 
-fn addr(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
-    before[op[3]] = before[op[1]] + before[op[2]];
-    before == after
+fn decode_operations(samples: &Vec<Input>) -> HashMap<usize, OperationType> {
+    let mut compliance_list: HashMap<_,_> =
+        samples
+        .iter()
+        .map(|s| (s.op[0], get_compliant_ops(s.before, s.op, s.after)))
+        .fold(HashMap::new(), |mut acc, (op_code, maybes)| {
+            match acc.get_mut(&op_code) {
+                None => { acc.insert(op_code, maybes); }
+                Some(hs) => { *hs = hs.intersection(&maybes).cloned().collect(); }
+            }
+            acc
+        });
+    
+    let mut decode_table: HashMap<usize, OperationType> = HashMap::new();
+    
+    while !compliance_list.is_empty() {
+        let (op_code, op_type) = compliance_list.iter().filter_map(|(code, ops)| {
+            match ops.len() {
+                1 => Some((*code, ops.clone().into_iter().next().unwrap())),
+                _ => None
+            }
+        }).next().unwrap();
+
+        decode_table.insert(op_code, op_type);
+
+        compliance_list = compliance_list.into_iter().filter_map(|(code, ops)| {
+            if code == op_code {
+                None
+            } else {
+                Some((code, ops.into_iter().filter(|op| *op != op_type).collect()))
+            }
+        }).collect();
+    }
+    
+
+    println!("{:?}", &decode_table);
+
+    decode_table
 }
 
-fn addi(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
-    before[op[3]] = before[op[1]] + op[2];
-    before == after
-}
-
-fn mulr(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
-    before[op[3]] = before[op[1]] * before[op[2]];
-    before == after
-}
-
-fn muli(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
-    before[op[3]] = before[op[1]] * op[2];
-    before == after
-}
-
-fn banr(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
-    before[op[3]] = before[op[1]] & before[op[2]];
-    before == after
-}
-
-fn bani(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
-    before[op[3]] = before[op[1]] & op[2];
-    before == after
-}
-
-fn borr(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
-    before[op[3]] = before[op[1]] | before[op[2]];
-    before == after
-}
-
-fn bori(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
-    before[op[3]] = before[op[1]] | op[2];
-    before == after
-}
-
-fn setr(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
-    before[op[3]] = before[op[1]];
-    before == after
-}
-
-fn seti(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
-    before[op[3]] = op[1];
-    before == after
-}
-
-fn gtir(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
-    before[op[3]] = if op[1] > before[op[2]] { 1 } else { 0 };
-    before == after
-}
-
-fn gtri(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
-    before[op[3]] = if before[op[1]] > op[2] { 1 } else { 0 };
-    before == after
-}
-
-fn gtrr(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
-    before[op[3]] = if before[op[1]] > before[op[2]] { 1 } else { 0 };
-    before == after
-}
-
-fn eqir(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
-    before[op[3]] = if op[1] == before[op[2]] { 1 } else { 0 };
-    before == after
-}
-
-fn eqri(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
-    before[op[3]] = if before[op[1]] == op[2] { 1 } else { 0 };
-    before == after
-}
-
-fn eqrr(mut before: [usize; 4], op: [usize; 4], after: [usize; 4]) -> bool {
-    before[op[3]] = if before[op[1]] == before[op[2]] { 1 } else { 0 };
-    before == after
+fn exec_test_sequence(asm: &Vec<[usize; 4]>) {
+    let mut memory = [0; 4];
+    
+    for instr in asm {
+        
+    }
 }
 
 pub fn parse_input(raw: &str) -> (Vec<Input>, TestSequence) {
@@ -182,6 +261,19 @@ pub fn parse_input(raw: &str) -> (Vec<Input>, TestSequence) {
 }
 
 #[test]
+fn test_operation_decoder() {
+    let content =
+        std::fs::read_to_string(r"D:\Git\advent2018\puzzle_inputs\day16.txt")
+        .unwrap();
+
+    let (inp, seq) = parse_input(&content);
+
+    let _resultando = decode_operations(&inp);
+
+}
+
+// fix line endings
+// #[test]
 fn test_op_parsing() {
     let test_input = r"Before: [1, 1, 0, 3]
 3 0 2 0
@@ -221,5 +313,10 @@ fn test_op_sample() {
     let op = [9, 2, 1, 2];
     let after = [3, 2, 2, 1];
 
-    assert_eq!(test_sample(before, op, after), 3);
+    let mut expected = HashSet::new();
+    expected.insert(OperationType::Addi);
+    expected.insert(OperationType::Mulr);
+    expected.insert(OperationType::Seti);
+
+    assert_eq!(get_compliant_ops(before, op, after), expected);
 }

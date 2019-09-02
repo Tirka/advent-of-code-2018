@@ -19,7 +19,7 @@ mod day14;
 mod day15;
 mod day16;
 
-// mod freestyle;
+mod freestyle;
 
 macro_rules! read_input {
     ($path:expr) => {{
@@ -145,6 +145,6 @@ fn main() {
 
     // // DAY 16
     // let (samples, _test_sequence) = day16::parse_input(&read_input!("day16.txt"));
-    // let amount = day16::test_samples(samples);
-    // println!("DAY 16. PART 1: {}", amount);
+    // let count = day16::get_compliant_ops(samples);
+    // println!("DAY 16. PART 1: {}", count);
 }
