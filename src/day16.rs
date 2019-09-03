@@ -278,24 +278,8 @@ pub fn parse_input(raw: &str) -> (Vec<Input>, Vec<[usize; 4]>) {
     (inputs, test_sequence)
 }
 
-#[test]
-fn test_operation_decoder() {
-    let content =
-        std::fs::read_to_string(r"D:\Git\advent2018\puzzle_inputs\day16.txt")
-        .unwrap();
-
-    let (inp, seq) = parse_input(&content);
-
-    let decode_table = decode_operations(&inp);
-
-    let memory = exec_test_seq(&seq, decode_table);
-
-    println!("{:?}", &memory);
-    // dopisat test and dopisat mein programme
-}
-
 // fix line endings
-#[test]
+// #[test]
 fn test_op_parsing() {
     let test_input = r"Before: [1, 1, 0, 3]
 3 0 2 0
@@ -311,7 +295,7 @@ After:  [0, 1, 2, 0]
 2 0 3 2
 2 2 1 0";
 
-    let (inputs, _test_sequence) = parse_input(test_input);
+    let (inputs, test_seq) = parse_input(test_input);
 
     let expected_inputs = vec![
         Input {
@@ -326,7 +310,15 @@ After:  [0, 1, 2, 0]
         }
     ];
 
-    assert_eq!(inputs, expected_inputs)
+    assert_eq!(inputs, expected_inputs);
+
+    let expected_test_seq = vec![
+        [2, 2, 3, 3],
+        [2, 0, 3, 2],
+        [2, 2, 1, 0],
+    ];
+
+    assert_eq!(test_seq, expected_test_seq);
 }
 
 #[test]
