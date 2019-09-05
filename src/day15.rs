@@ -1,5 +1,6 @@
 use std::fmt;
 use std::collections::{HashMap, LinkedList, HashSet};
+use std::cell::RefCell;
 
 #[derive(Debug, Hash, Eq, PartialEq, Copy, Clone)]
 pub struct Coord {
@@ -36,11 +37,11 @@ impl Map {
                 for (x, tile) in row.iter().enumerate() {
                     if *tile == Terrain::Cavern {
                         let mut neibhours = LinkedList::new();
-                        for (x, y) in [(x, y-1), (x-1, y), (x+1, y), (x, y+1)].iter() {
+                        for (x, y) in [(x, y-1),(x-1, y), (x+1, y), (x, y+1)].iter() {
                             if tiles[*y][*x] == Terrain::Cavern {
                                 let x = *x as i32;
                                 let y = *y as i32;
-                                neibhours.push_front(Coord {x, y});
+                                neibhours.push_back(Coord {x, y});
                             }
                         }
 
@@ -48,6 +49,8 @@ impl Map {
                     }
                 }
             }
+
+            // println!("ADJACENCY: {:?}", &result);
 
             result
         }
@@ -65,6 +68,7 @@ impl Map {
 
         while !queue.is_empty() {
             let curr = queue.pop_front().unwrap();
+            // println!("CURR: {:?}", curr);
             if enemies.iter().any(|u| curr == u.coordinate) {
                 return backtrace(moving.coordinate, curr, parent)[1];
             }
@@ -128,13 +132,22 @@ impl Unit {
 
 #[derive(Debug)]
 struct Units {
+    // units: RefCell<Vec<Unit>>,
     units: Vec<Unit>,
 }
 
 impl Units {
     fn new(units: Vec<Unit>) -> Self {
+        // Self { units: RefCell::new(units) }
         Self { units }
     }
+
+    // fn reorder(&self) {
+    //     self.units.borrow_mut().sort_by(|u1, u2| {
+    //         u1.coordinate.y.cmp(&u2.coordinate.y)
+    //         .then(u1.coordinate.x.cmp(&u2.coordinate.x))
+    //     });
+    // }
 
     fn reorder(&mut self) {
         self.units.sort_by(|u1, u2| {
@@ -143,24 +156,26 @@ impl Units {
         });
     }
 
-    // fn all(&mut self) -> &Vec<Unit> {
-    //     self.units.sort_by(|u1, u2| {
-    //         u1.coordinate.y.cmp(&u2.coordinate.y)
-    //         .then(u1.coordinate.x.cmp(&u2.coordinate.x))
-    //     });
+    fn len(&self) -> usize {
+        self.units.len()
+    }
 
-    //     &self.units
-    // }
-
-    fn all_imm(&self) -> &Vec<Unit> {
+    fn all(&self) -> &Vec<Unit> {
         &self.units
     }
 
-    fn find_unit(&self, x: usize, y: usize) -> Option<&Unit> {
+    // fn find_unit(&self, x: usize, y: usize) -> Option<Unit> {
+    //     let x = x as i32;
+    //     let y = y as i32;
+
+    //     self.units.borrow().iter().find(|u| u.coordinate == Coord { x, y}).map(|x| x.clone())
+    // }
+
+    fn find_unit(&self, x: usize, y: usize) -> Option<Unit> {
         let x = x as i32;
         let y = y as i32;
 
-        self.units.iter().find(|u| u.coordinate == Coord { x, y})
+        self.units.iter().find(|u| u.coordinate == Coord { x, y}).map(|x| x.clone())
     }
 }
 
@@ -176,12 +191,26 @@ impl Game {
     }
 
     pub fn play_game(&mut self) {
-        for _i in 0..2 {
+        for _i in 0..1 {
             self.units.reorder();
-            for unit in self.units.all_imm() {
-                let new_coord = self.map.bfs_pathfinder(&unit, &self.units.all_imm());
-                println!("U1: {:?}; NEW: {:?}", &unit.coordinate, &new_coord);
+
+            // for (i, mut unit) in self.units.units.iter_mut().enumerate() {
+            //     let azazka = self.units.all_imm();
+            //     let new_coord = self.map.bfs_pathfinder(unit, azazka);
+            //     unit.coordinate = new_coord;
+            //     // unit
+            // }
+
+            for j in 0..self.units.len() {
+                let new_coord = self.map.bfs_pathfinder(&self.units.units[j], self.units.all());
+                self.units.units[j].coordinate = new_coord;
             }
+            // for unit in self.units.all_imm() {
+            //     let azazka = self.units.all_imm().clone();
+            //     let new_coord = self.map.bfs_pathfinder(&unit, azazka);
+            //     println!("U1: {:?}; NEW: {:?}", &unit.coordinate, &new_coord);
+            //     // (*unit).coordinate = new_coord;
+            // }
         }
 
         // for unit in self.units.all_imm() {
@@ -254,7 +283,7 @@ pub  fn parse_input(raw: &str) -> (Vec<Vec<Terrain>>, Vec<Unit>) {
 }
 
 #[test]
-fn babika() {
+fn babikas() {
     let test_map = r"#########
 #G..G..G#
 #.......#
